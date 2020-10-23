@@ -14,6 +14,7 @@ import (
 	"github.com/apex/log"
 	"github.com/pborman/getopt"
 	"github.com/prometheus/prometheus/promql/parser"
+	"gopkg.in/yaml.v2"
 )
 
 type Query struct {
@@ -51,6 +52,7 @@ func main() {
 		optMinQueryTime           = getopt.DurationLong("min-query-time", 'm', 0, "Min query duration time to include in a result")
 		optMinQueryCount          = getopt.Uint32Long("min-query-count", 'c', 0, "Min query count it should reappear in the log to include in a result")
 		optGenerateRecordingRules = getopt.BoolLong("generate-recording-rules", 'r', "Generate recording rules and output")
+		optGenerateRollupRules    = getopt.BoolLong("generate-rollup-rules", 'g', "Generate rollup rules and output")
 		slowQueries               = make(map[string]*queryStats, 100)
 	)
 	getopt.Parse()
@@ -95,7 +97,7 @@ func main() {
 			continue
 		}
 
-		log.Debugf("Analyzing query: %s, Took time: %fs\n", query.Params.Query, query.Stats.Timings.InnerEvalTime)
+		log.Debugf("Query: %s, Took time: %fs\n", query.Params.Query, query.Stats.Timings.InnerEvalTime)
 		expr, err := parser.ParseExpr(query.Params.Query)
 		if err != nil {
 			log.Errorf("error parsing query at line %d: %v", lineNo, err)
@@ -146,6 +148,38 @@ func main() {
 		for _, v := range arr {
 			fmt.Println("- record:", toRuleName(v.query))
 			fmt.Println("  expr:", v.query)
+		}
+		return
+	}
+
+	if *optGenerateRollupRules {
+		failedQueries := make([]string, 0, len(arr))
+		cfg := &Configuration{
+			Rules: &RulesConfiguration{
+				RollupRules: make([]RollupRuleConfiguration, 0, len(arr)),
+			},
+		}
+		for _, v := range arr {
+			r := queryToRollupRule(v.query)
+			if r != nil {
+				cfg.Rules.RollupRules = append(cfg.Rules.RollupRules, *r)
+			} else {
+				failedQueries = append(failedQueries, v.query)
+			}
+		}
+
+		y, err := yaml.Marshal(cfg)
+		if err != nil {
+			fmt.Printf("Failed to serialize rules to YAML: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("%s\n", string(y))
+
+		if len(failedQueries) > 0 {
+			fmt.Println("\nFailed to convert the following queries:")
+			for _, s := range failedQueries {
+				fmt.Println(s)
+			}
 		}
 		return
 	}
