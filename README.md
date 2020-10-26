@@ -1,4 +1,4 @@
-# Hight Cardinality Analyzer
+# High Cardinality Analyzer
 
 That is a simple tool to help you analyze your Prometheus Query Log and generate
 recording rules according to total query time. It looks for aggregation functions
