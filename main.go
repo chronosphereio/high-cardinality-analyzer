@@ -144,10 +144,12 @@ func main() {
 	})
 
 	if *optGenerateRecordingRules {
-		fmt.Println("rules:")
+		fmt.Println("groups:")
+		fmt.Println("- name: high_cardinality_analyzer_group")
+		fmt.Println("  rules:")
 		for _, v := range arr {
-			fmt.Println("- record:", toRuleName(v.query))
-			fmt.Println("  expr:", v.query)
+			fmt.Println("  - record:", toRuleName(v.query))
+			fmt.Println("    expr:", v.query)
 		}
 		return
 	}

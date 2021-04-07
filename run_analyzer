@@ -1,0 +1,9 @@
+#!/bin/sh
+
+while :
+do
+  echo "Running high cardinality analyzer"
+  ./high-cardinality-analyzer --query-log ~/scripts/promcon/prometheus/query.log --min-query-time 1s --min-query-count 2 --generate-recording-rules > ~/scripts/promcon/prometheus/high_cardinality_rules.yml
+  curl -X POST http://127.0.0.1:9090/-/reload
+  sleep 10
+done
